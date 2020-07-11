@@ -30,6 +30,9 @@ class NeuralNetwork:
 
         self.learning_rate = 0.1
 
+        # the derivative of the sigmoid function vectorized
+        self.dsig_vec = np.vectorize(self.dsigmoid)
+
     def sigmoid(self, m):
         """
         Sigmoid function as an activation function.
@@ -81,14 +84,14 @@ class NeuralNetwork:
 
         # define the hidden layer outputs
         # input layer -> hidden layer
-        hidden_output = np.dot(self.weights_ih, inputs)
+        hidden_output = self.weights_ih @ inputs
         hidden_output = hidden_output + self.bias_h
         # apply activation function
         hidden_output = self.sigmoid(hidden_output)
 
         # define the output layer outputs
         # hidden layer -> output layer
-        output_output = np.dot(self.weights_ho, hidden_output)
+        output_output = self.weights_ho @ hidden_output
         output_output = output_output + self.bias_o
         # apply activation function
         output_output = self.sigmoid(output_output)
@@ -116,14 +119,14 @@ class NeuralNetwork:
 
         # define the hidden layer outputs
         # input layer -> hidden layer
-        hidden_output = np.dot(self.weights_ih, inputs)
+        hidden_output = self.weights_ih @ inputs
         hidden_output = hidden_output + self.bias_h
         # apply activation function
         hidden_output = self.sigmoid(hidden_output)
 
         # define the output layer outputs
         # hidden layer -> output layer
-        output_output = np.dot(self.weights_ho, hidden_output)
+        output_output = self.weights_ho @ hidden_output
         output_output = output_output + self.bias_o
         # apply activation function
         output_output = self.sigmoid(output_output)
@@ -140,13 +143,13 @@ class NeuralNetwork:
         # hardcore math and calculus, might see later
         # each layer has its own gradient, as well its own formula
         # using vectorize for reasons described in the dsigmoid function
-        output_gradient = np.vectorize(self.dsigmoid)(output_output)
+        output_gradient = self.dsig_vec(output_output)  # !!!!
         output_gradient *= output_error
         output_gradient *= self.learning_rate
 
         # calculate how much the weights must change
         # with the transposed matrix, since it's going backwards
-        weights_ho_delta = np.dot(output_gradient, hidden_output.T)
+        weights_ho_delta = output_gradient @ hidden_output.T
 
         # adjust weights
         self.weights_ho += weights_ho_delta
@@ -154,20 +157,46 @@ class NeuralNetwork:
         self.bias_o += output_gradient
 
         # hidden layer error
-        hidden_error = np.dot(self.weights_ho.T, output_error)
+        hidden_error = self.weights_ho.T @ output_error
 
         # calculate hidden layer gradient (same proccess)
-        hidden_gradient = np.vectorize(self.dsigmoid)(hidden_output)
+        hidden_gradient = self.dsig_vec(hidden_output)  # !!!!
         hidden_gradient *= hidden_error
         hidden_gradient *= self.learning_rate
 
         # hidden deltas
-        weights_ih_delta = np.dot(hidden_gradient, inputs.T)
+        weights_ih_delta = hidden_gradient @ inputs.T
 
         # adjust weights
         self.weights_ih += weights_ih_delta
         # adjust bias
         self.bias_h += hidden_gradient
+
+    def train_test(self):
+        data_set = [
+            {
+                "input": [0, 0],
+                "label": [0]
+            },
+            {
+                "input": [1, 0],
+                "label": [1]
+            },
+            {
+                "input": [0, 1],
+                "label": [1]
+            },
+            {
+                "input": [1, 1],
+                "label": [0]
+            },
+        ]
+
+        for i in range(42000):
+            current = random.choice(data_set)
+            self.train(current["input"], current["label"])
+
+        # print(self.predict([1, 0]))
 
 
 if __name__ == "__main__":
@@ -192,11 +221,11 @@ if __name__ == "__main__":
         },
     ]
 
-    for i in range(50000):
+    for i in range(500000):
         current = random.choice(data_set)
         clss.train(current["input"], current["label"])
 
-    print(clss.predict([1, 1]))
-    print(clss.predict([0, 1]))
-    print(clss.predict([1, 0]))
-    print(clss.predict([0, 0]))
+    # print(clss.predict([1, 1]))
+    # print(clss.predict([0, 1]))
+    # print(clss.predict([1, 0]))
+    # print(clss.predict([0, 0]))
