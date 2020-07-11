@@ -28,7 +28,7 @@ class NeuralNetwork:
             (self.outputs_num, self.hidden_num), rnd.random())
 
         self.bias_h = np.full((self.hidden_num, 1), rnd.random())
-        self.bias_0 = np.full((self.outputs_num, 1), rnd.random())
+        self.bias_o = np.full((self.outputs_num, 1), rnd.random())
 
         self.learning_rate = 0.1
 
@@ -69,6 +69,9 @@ class NeuralNetwork:
             Args:
                 input_array (array): An array of inputs suited to the Neural Network training
             """
+
+            # FEEDFORWARD ALGORITHM
+
             pass
 
         def train(self, input_array, label_array):
@@ -81,7 +84,67 @@ class NeuralNetwork:
                 input_array (array): An array of inputs
                 label_array (array): An array of labes, according to the inputs
             """
-            pass
+
+            # create the numpy arrays
+            inputs = np.array(input_array)
+            labels = np.array(label_array)
+
+            # FEEDFORWARD ALGORITHM
+
+            # define the hidden layer outputs
+            # input layer -> hidden layer
+            hidden_output = self.weights_ih.dot(inputs)
+            hidden_output += self.bias_h
+            # apply activation function
+            hidden_output = self.sigmoid(hidden_output)
+
+            # define the output layer outputs
+            # hidden layer -> output layer
+            output_output = self.weights_ho.dot(hidden_output)
+            output_output += self.bias_o
+            # apply activation function
+            output_output = self.sigmoid(output_output)
+
+            # BACKPROPAGATION ALGORITHM
+
+            # calculate how much the network has missed
+            # ERROR = TARGET - OUTPUT
+
+            # output layer error
+            output_error = labels - output_output
+
+            # calculate the gradient of the formula to backpropagate the error to the first layers
+            # hardcore math and calculus, might see later
+            # each layer has its own gradient, as well its own formula
+            # using vectorize for reasons described in the dsigmoid function
+            output_gradient = np.vectorize(self.dsigmoid)(output_output)
+            output_gradient = output_gradient.dot(output_error)
+            output_gradient *= self.learning_rate
+
+            # calculate how much the weights must change
+            # with the transposed matrix, since it's going backwards
+            weights_ho_delta = output_gradient.dot(hidden_output.T)
+
+            # adjust weights
+            self.weights_ho += weights_ho_delta
+            # adjust bias (its just the gradient)
+            self.bias_o += output_gradient
+
+            # hidden layer error
+            hidden_error = self.weights_ho.T.dot(output_error)
+
+            # calculate hidden layer gradient (same proccess)
+            hidden_gradient = np.vectorize(self.dsigmoid)(hidden_output)
+            hidden_gradient = hidden_gradient.dot(hidden_error)
+            hidden_gradient *= self.learning_rate
+
+            # hidden deltas
+            weights_ih_delta = hidden_gradient.dot(inputs.T)
+
+            # adjust weights
+            self.weights_ih += weights_ih_delta
+            # adjust bias
+            self.bias_h += hidden_gradient
 
 
 if __name__ == "__main__":
