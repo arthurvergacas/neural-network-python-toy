@@ -105,15 +105,21 @@ class NeuralNetwork:
         Trains the neural network with supervised learning
         The 'train' method trains the neural network just once, so it's necessary
         to train it within a loop
+        It's important to say that the inputs array must come in the format of columns.
+        In other words, an array with shape (num of inputs, 1).
+        The numpy.array() method, when provided a python list, yelds an single line array.
+        To avoid it, give to the method transposed ndarrays.
 
         Args:
-            input_array (array): An array of inputs
-            label_array (array): An array of labes, according to the inputs
+            input_array (array): A transposed ndarray (numpy array) of inputs
+            label_array (array): A transposed ndarray (numpy array) of labes, according to the inputs
         """
 
         # create the numpy arrays
-        inputs = np.array(input_array, ndmin=2).T
-        labels = np.array(label_array, ndmin=2).T
+        # inputs = np.array(input_array, ndmin=2).T
+        # labels = np.array(label_array, ndmin=2).T
+        inputs = input_array
+        labels = label_array
 
         # FEEDFORWARD ALGORITHM
 
@@ -175,20 +181,20 @@ class NeuralNetwork:
     def train_test(self):
         data_set = [
             {
-                "input": [0, 0],
-                "label": [0]
+                "input": np.array([0, 0], ndmin=2).T,
+                "label": np.array([0], ndmin=2).T
             },
             {
-                "input": [1, 0],
-                "label": [1]
+                "input": np.array([0, 1], ndmin=2).T,
+                "label": np.array([1], ndmin=2).T
             },
             {
-                "input": [0, 1],
-                "label": [1]
+                "input": np.array([1, 0], ndmin=2).T,
+                "label": np.array([1], ndmin=2).T
             },
             {
-                "input": [1, 1],
-                "label": [0]
+                "input": np.array([1, 1], ndmin=2).T,
+                "label": np.array([0], ndmin=2).T
             },
         ]
 
@@ -221,11 +227,11 @@ if __name__ == "__main__":
         },
     ]
 
-    for i in range(500000):
+    for i in range(100000):
         current = random.choice(data_set)
         clss.train(current["input"], current["label"])
 
-    # print(clss.predict([1, 1]))
-    # print(clss.predict([0, 1]))
-    # print(clss.predict([1, 0]))
-    # print(clss.predict([0, 0]))
+    print(clss.predict([1, 1]))
+    print(clss.predict([0, 1]))
+    print(clss.predict([1, 0]))
+    print(clss.predict([0, 0]))
