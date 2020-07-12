@@ -3,3 +3,4 @@
 /.__pycache__
 profiling.py
 test.py
+nn_data.json

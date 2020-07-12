@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import json
 
 
 class NeuralNetwork:
@@ -8,7 +9,7 @@ class NeuralNetwork:
     Based on Daniel Shiffman's library
     """
 
-    def __init__(self, inputs, outputs, *args):
+    def __init__(self, inputs, outputs, *hidden):
         """
         Constructor function
         Current only supports three layers, but leading to change it
@@ -21,7 +22,7 @@ class NeuralNetwork:
         self.inputs_num = inputs
 
         self.hidden_num = []
-        for arg in args:
+        for arg in hidden:
             self.hidden_num.append(arg)
         self.hidden_layers = len(self.hidden_num)
 
@@ -56,11 +57,6 @@ class NeuralNetwork:
 
         # the derivative of the sigmoid function vectorized
         self.dsig_vec = np.vectorize(self.dsigmoid)
-
-        # print(self.weights)
-        # print(self.weights_ho)
-        # print(self.bias_h)
-        # print(self.bias_o)
 
     def sigmoid(self, m):
         """
@@ -243,35 +239,56 @@ class NeuralNetwork:
 
             self.bias_h[self.hidden_layers - (i + 1)] += hidden_gradient
 
-    def train_test(self):
-        data_set = [
-            {
-                "input": np.array([0, 0], ndmin=2).T,
-                "label": np.array([0], ndmin=2).T
-            },
-            {
-                "input": np.array([1, 0], ndmin=2).T,
-                "label": np.array([1], ndmin=2).T
-            },
-            {
-                "input": np.array([0, 1], ndmin=2).T,
-                "label": np.array([1], ndmin=2).T
-            },
-            {
-                "input": np.array([1, 1], ndmin=2).T,
-                "label": np.array([1], ndmin=2).T
-            },
-        ]
+    def save(self, file_path):
+        """
+        Serializes the weights and biases of the class.
+        Use it to save training
 
-        for i in range(42000):
-            current = random.choice(data_set)
-            self.train(current["input"], current["label"])
+        Args:
+            file_path (str): path to the file that will contain the serialized data
+        """
 
-        # print(self.predict([1, 0]))
+        temp_w = []
+        for w in self.weights:
+            temp_w.append(w.tolist())
+        temp_b = []
+        for b in self.bias_h:
+            temp_b.append(b.tolist())
+
+        data = {
+            "weights": temp_w,
+            "weights_ho": self.weights_ho.tolist(),
+            "bias_h": temp_b,
+            "bias_o": self.bias_o.tolist()
+        }
+
+        with open(file_path, "w") as file:
+            json.dump(data, file)
+
+    def load(self, file_path):
+        """
+        Unserializes the weights and biases  produced bi the method "save()".
+
+        Args:
+            file_path (str): The path to the file that contains the data
+        """
+        with open(file_path, "r") as json_file:
+            data = json.load(json_file)
+
+            self.weights_ho = np.array(data["weights_ho"], ndmin=2)
+            self.bias_o = np.array(data["bias_o"], ndmin=2)
+
+            self.weights = []
+            for w in data["weights"]:
+                self.weights.append(np.array(w, ndmin=2))
+
+            self.bias_h = []
+            for b in data["bias_h"]:
+                self.bias_h.append(np.array(b, ndmin=2))
 
 
 if __name__ == "__main__":
-    clss = NeuralNetwork(2, 1, 16, 16)
+    clss = NeuralNetwork(2, 1, 50, 50)
 
     data_set = [
         {
@@ -292,11 +309,14 @@ if __name__ == "__main__":
         },
     ]
 
-    for i in range(100000):
-        current = random.choice(data_set)
-        clss.train(current["input"], current["label"])
+    # for i in range(50000):
+    #     current = random.choice(data_set)
+    #     clss.train(current["input"], current["label"])
 
-    print()
+    # clss.save("nn_data.json")
+
+    clss.load("nn_data.json")
+
     print(clss.predict([1, 1]))
     print(clss.predict([0, 1]))
     print(clss.predict([1, 0]))
