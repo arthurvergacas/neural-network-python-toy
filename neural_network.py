@@ -8,30 +8,59 @@ class NeuralNetwork:
     Based on Daniel Shiffman's library
     """
 
-    def __init__(self, inputs, hidden, outputs):
+    def __init__(self, inputs, outputs, *args):
         """
         Constructor function
         Current only supports three layers, but leading to change it
 
         Args:
             inputs (int): number of inputs neurons
-            hidden (int): number of hidden neurons
             outputs (int): number of outputs
+            *args (int): the number of nodes of all hidden layers
         """
         self.inputs_num = inputs
-        self.hidden_num = hidden
+
+        self.hidden_num = []
+        for arg in args:
+            self.hidden_num.append(arg)
+        self.hidden_layers = len(self.hidden_num)
+
         self.outputs_num = outputs
 
-        self.weights_ih = np.random.rand(self.hidden_num, self.inputs_num)
-        self.weights_ho = np.random.rand(self.outputs_num, self.hidden_num)
+        # create an array of all hidden layer weights
+        self.weights = []
+        for i in range(self.hidden_layers):
+            if i == 0:
+                self.weights.append(np.random.rand(
+                    self.hidden_num[0], self.inputs_num))
+                # self.weights.append(
+                #     np.full((self.hidden_num[0], self.inputs_num), 5.0))
+            else:
+                self.weights.append(np.random.rand(
+                    self.hidden_num[i], self.hidden_num[i - 1]))
 
-        self.bias_h = np.random.rand(self.hidden_num, 1)
+        self.weights_ho = np.random.rand(
+            self.outputs_num, self.hidden_num[self.hidden_layers - 1])
+        # self.weights_ho = np.full((
+        #     self.outputs_num, self.hidden_num[self.hidden_layers - 1]), 1.0)
+
+        self.bias_h = []
+        for i in range(self.hidden_layers):
+            self.bias_h.append(np.random.rand(self.hidden_num[i], 1))
+            # self.bias_h.append(np.full((self.hidden_num[i], 1), 3.0))
+
         self.bias_o = np.random.rand(self.outputs_num, 1)
+        # self.bias_o = np.full((self.outputs_num, 1), 2.0)
 
         self.learning_rate = 0.1
 
         # the derivative of the sigmoid function vectorized
         self.dsig_vec = np.vectorize(self.dsigmoid)
+
+        # print(self.weights)
+        # print(self.weights_ho)
+        # print(self.bias_h)
+        # print(self.bias_o)
 
     def sigmoid(self, m):
         """
@@ -83,11 +112,16 @@ class NeuralNetwork:
         # FEEDFORWARD ALGORITHM
 
         # define the hidden layer outputs
-        # input layer -> hidden layer
-        hidden_output = self.weights_ih @ inputs
-        hidden_output = hidden_output + self.bias_h
+        # define first hidden layer output
+        hidden_output = self.weights[0] @ inputs
+        hidden_output = hidden_output + self.bias_h[0]
         # apply activation function
         hidden_output = self.sigmoid(hidden_output)
+
+        for i in range(1, self.hidden_layers):
+            hidden_output = self.weights[i] @ hidden_output
+            hidden_output = hidden_output + self.bias_h[i]
+            hidden_output = self.sigmoid(hidden_output)
 
         # define the output layer outputs
         # hidden layer -> output layer
@@ -105,30 +139,41 @@ class NeuralNetwork:
         Trains the neural network with supervised learning
         The 'train' method trains the neural network just once, so it's necessary
         to train it within a loop
-        It's important to say that the inputs array must come in the format of columns.
-        In other words, an array with shape (num of inputs, 1).
+        It's important to recall that the given array of inputs must have a shape of (num_of_inputs, 1).
+        In other words, just one column, and num_of_inputs rows.
         The numpy.array() method, when provided a python list, yelds an single line array.
-        To avoid it, give to the method transposed ndarrays.
+        To avoid it, give to the method transposed ndarrays
 
         Args:
-            input_array (array): A transposed ndarray (numpy array) of inputs
-            label_array (array): A transposed ndarray (numpy array) of labes, according to the inputs
+            input_array (array): A trasnposed ndarray (numpy array) of inputs
+            label_array (array): A transposed ndarray (numpy array) of labels, according to the inputs
         """
 
         # create the numpy arrays
-        # inputs = np.array(input_array, ndmin=2).T
-        # labels = np.array(label_array, ndmin=2).T
         inputs = input_array
         labels = label_array
 
         # FEEDFORWARD ALGORITHM
 
+        # array to keep track of all hidden outputs
+        hidden_opts = []
+
         # define the hidden layer outputs
-        # input layer -> hidden layer
-        hidden_output = self.weights_ih @ inputs
-        hidden_output = hidden_output + self.bias_h
+        # define first hidden layer output
+        hidden_output = self.weights[0] @ inputs
+        hidden_output = hidden_output + self.bias_h[0]
         # apply activation function
         hidden_output = self.sigmoid(hidden_output)
+        hidden_opts.append(hidden_output)
+
+        for i in range(1, self.hidden_layers):
+            hidden_output = self.weights[i] @ hidden_output
+            hidden_output = hidden_output + self.bias_h[i]
+            hidden_output = self.sigmoid(hidden_output)
+            hidden_opts.append(hidden_output)
+
+        # revert the list so the last output comes first
+        hidden_opts.reverse()
 
         # define the output layer outputs
         # hidden layer -> output layer
@@ -149,7 +194,7 @@ class NeuralNetwork:
         # hardcore math and calculus, might see later
         # each layer has its own gradient, as well its own formula
         # using vectorize for reasons described in the dsigmoid function
-        output_gradient = self.dsig_vec(output_output)  # !!!!
+        output_gradient = self.dsig_vec(output_output)
         output_gradient *= output_error
         output_gradient *= self.learning_rate
 
@@ -166,17 +211,37 @@ class NeuralNetwork:
         hidden_error = self.weights_ho.T @ output_error
 
         # calculate hidden layer gradient (same proccess)
-        hidden_gradient = self.dsig_vec(hidden_output)  # !!!!
+        hidden_gradient = self.dsig_vec(hidden_opts[0])
         hidden_gradient *= hidden_error
         hidden_gradient *= self.learning_rate
 
         # hidden deltas
-        weights_ih_delta = hidden_gradient @ inputs.T
+        if self.hidden_layers == 1:
+            weights_h_delta = hidden_gradient @ inputs.T
+        else:
+            weights_h_delta = hidden_gradient @ hidden_opts[1].T
 
         # adjust weights
-        self.weights_ih += weights_ih_delta
+        self.weights[self.hidden_layers - 1] += weights_h_delta
         # adjust bias
-        self.bias_h += hidden_gradient
+        self.bias_h[self.hidden_layers - 1] += hidden_gradient
+
+        for i in range(1, self.hidden_layers):
+            hidden_error = self.weights[self.hidden_layers -
+                                        i].T @ hidden_error
+
+            hidden_gradient = self.dsig_vec(hidden_opts[i])
+            hidden_gradient *= hidden_error
+            hidden_gradient *= self.learning_rate
+
+            if i == self.hidden_layers - 1:
+                weights_h_delta = hidden_gradient @ inputs.T
+            else:
+                weights_h_delta = hidden_gradient @ hidden_opts[i + 1].T
+
+            self.weights[self.hidden_layers - (i + 1)] += weights_h_delta
+
+            self.bias_h[self.hidden_layers - (i + 1)] += hidden_gradient
 
     def train_test(self):
         data_set = [
@@ -185,16 +250,16 @@ class NeuralNetwork:
                 "label": np.array([0], ndmin=2).T
             },
             {
-                "input": np.array([0, 1], ndmin=2).T,
-                "label": np.array([1], ndmin=2).T
-            },
-            {
                 "input": np.array([1, 0], ndmin=2).T,
                 "label": np.array([1], ndmin=2).T
             },
             {
+                "input": np.array([0, 1], ndmin=2).T,
+                "label": np.array([1], ndmin=2).T
+            },
+            {
                 "input": np.array([1, 1], ndmin=2).T,
-                "label": np.array([0], ndmin=2).T
+                "label": np.array([1], ndmin=2).T
             },
         ]
 
@@ -206,24 +271,24 @@ class NeuralNetwork:
 
 
 if __name__ == "__main__":
-    clss = NeuralNetwork(2, 4, 1)
+    clss = NeuralNetwork(2, 1, 16, 16)
 
     data_set = [
         {
-            "input": [0, 0],
-            "label": [0]
+            "input": np.array([0, 0], ndmin=2).T,
+            "label": np.array([0], ndmin=2).T
         },
         {
-            "input": [1, 0],
-            "label": [1]
+            "input": np.array([0, 1], ndmin=2).T,
+            "label": np.array([1], ndmin=2).T
         },
         {
-            "input": [0, 1],
-            "label": [1]
+            "input": np.array([1, 0], ndmin=2).T,
+            "label": np.array([1], ndmin=2).T
         },
         {
-            "input": [1, 1],
-            "label": [0]
+            "input": np.array([1, 1], ndmin=2).T,
+            "label": np.array([0], ndmin=2).T
         },
     ]
 
@@ -231,6 +296,7 @@ if __name__ == "__main__":
         current = random.choice(data_set)
         clss.train(current["input"], current["label"])
 
+    print()
     print(clss.predict([1, 1]))
     print(clss.predict([0, 1]))
     print(clss.predict([1, 0]))
