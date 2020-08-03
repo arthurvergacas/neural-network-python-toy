@@ -5,14 +5,13 @@ import json
 
 class NeuralNetwork:
     """
-    Neural Network Toy, by Arthur Vergaças.
+    Neural Network Toy for python, by Arthur Vergaças.
     Based on Daniel Shiffman's library
     """
 
     def __init__(self, inputs, outputs, *hidden):
         """
         Constructor function
-        Current only supports three layers, but leading to change it
 
         Args:
             inputs (int): number of inputs neurons
@@ -114,6 +113,7 @@ class NeuralNetwork:
         # apply activation function
         hidden_output = self.sigmoid(hidden_output)
 
+        # loops for the layers that interact only with other hidden layers
         for i in range(1, self.hidden_layers):
             hidden_output = self.weights[i] @ hidden_output
             hidden_output = hidden_output + self.bias_h[i]
@@ -150,6 +150,8 @@ class NeuralNetwork:
         labels = label_array
 
         # FEEDFORWARD ALGORITHM
+        # even i already have a function that does this process, i wanted to have
+        # it here also so i can access the variables for the backpropragation algorithm
 
         # array to keep track of all hidden outputs
         hidden_opts = []
@@ -162,6 +164,7 @@ class NeuralNetwork:
         hidden_output = self.sigmoid(hidden_output)
         hidden_opts.append(hidden_output)
 
+        # loops for the layers that interact only with other hidden layers
         for i in range(1, self.hidden_layers):
             hidden_output = self.weights[i] @ hidden_output
             hidden_output = hidden_output + self.bias_h[i]
@@ -195,12 +198,12 @@ class NeuralNetwork:
         output_gradient *= self.learning_rate
 
         # calculate how much the weights must change
-        # with the transposed matrix, since it's going backwards
+        # using transposed matrix because it's going backwards
         weights_ho_delta = output_gradient @ hidden_output.T
 
         # adjust weights
         self.weights_ho += weights_ho_delta
-        # adjust bias (its just the gradient)
+        # adjust bias (it's just the gradient)
         self.bias_o += output_gradient
 
         # hidden layer error
@@ -222,6 +225,7 @@ class NeuralNetwork:
         # adjust bias
         self.bias_h[self.hidden_layers - 1] += hidden_gradient
 
+        # loops for the layers that interact only with other hidden layers
         for i in range(1, self.hidden_layers):
             hidden_error = self.weights[self.hidden_layers -
                                         i].T @ hidden_error
@@ -288,6 +292,8 @@ class NeuralNetwork:
 
 
 if __name__ == "__main__":
+    # in this example the network is being trained to perform as the XOR logical operator
+
     clss = NeuralNetwork(2, 1, 50, 50)
 
     data_set = [
